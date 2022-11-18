@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "GcodeThumbnailProvider.h"
+#include "PdfThumbnailProvider.h"
 
 #include <filesystem>
 #include <fstream>
@@ -16,37 +16,37 @@
 extern HINSTANCE g_hInst;
 extern long g_cDllRef;
 
-GcodeThumbnailProvider::GcodeThumbnailProvider() :
+PdfThumbnailProvider::PdfThumbnailProvider() :
     m_cRef(1), m_pStream(NULL), m_process(NULL)
 {
     InterlockedIncrement(&g_cDllRef);
 }
 
-GcodeThumbnailProvider::~GcodeThumbnailProvider()
+PdfThumbnailProvider::~PdfThumbnailProvider()
 {
     InterlockedDecrement(&g_cDllRef);
 }
 
 #pragma region IUnknown
 
-IFACEMETHODIMP GcodeThumbnailProvider::QueryInterface(REFIID riid, void** ppv)
+IFACEMETHODIMP PdfThumbnailProvider::QueryInterface(REFIID riid, void** ppv)
 {
     static const QITAB qit[] = {
-        QITABENT(GcodeThumbnailProvider, IThumbnailProvider),
-        QITABENT(GcodeThumbnailProvider, IInitializeWithStream),
+        QITABENT(PdfThumbnailProvider, IThumbnailProvider),
+        QITABENT(PdfThumbnailProvider, IInitializeWithStream),
         { 0 },
     };
     return QISearch(this, qit, riid, ppv);
 }
 
 IFACEMETHODIMP_(ULONG)
-GcodeThumbnailProvider::AddRef()
+PdfThumbnailProvider::AddRef()
 {
     return InterlockedIncrement(&m_cRef);
 }
 
 IFACEMETHODIMP_(ULONG)
-GcodeThumbnailProvider::Release()
+PdfThumbnailProvider::Release()
 {
     ULONG cRef = InterlockedDecrement(&m_cRef);
     if (0 == cRef)
@@ -60,7 +60,7 @@ GcodeThumbnailProvider::Release()
 
 #pragma region IInitializationWithStream
 
-IFACEMETHODIMP GcodeThumbnailProvider::Initialize(IStream* pStream, DWORD grfMode)
+IFACEMETHODIMP PdfThumbnailProvider::Initialize(IStream* pStream, DWORD grfMode)
 {
     HRESULT hr = E_INVALIDARG;
     if (pStream)
@@ -84,7 +84,7 @@ IFACEMETHODIMP GcodeThumbnailProvider::Initialize(IStream* pStream, DWORD grfMod
 
 #pragma region IThumbnailProvider
 
-IFACEMETHODIMP GcodeThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlpha)
+IFACEMETHODIMP PdfThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALPHATYPE* pdwAlpha)
 {
     // Read stream into the buffer
     char buffer[4096];
@@ -98,14 +98,14 @@ IFACEMETHODIMP GcodeThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS
         {
             // {CLSID} -> CLSID
             std::wstring guid = std::wstring(guidString.get()).substr(1, std::wstring(guidString.get()).size() - 2);
-            std::wstring filePath = PTSettingsHelper::get_local_low_folder_location() + L"\\GCodeThumbnail-Temp\\";
+            std::wstring filePath = PTSettingsHelper::get_local_low_folder_location() + L"\\PdfThumbnail-Temp\\";
             if (!std::filesystem::exists(filePath))
             {
                 std::filesystem::create_directories(filePath);
             }
 
-            std::wstring fileName = filePath + guid + L".gcode";
-            
+            std::wstring fileName = filePath + guid + L".pdf";
+
             // Write data to tmp file
             std::fstream file;
             file.open(fileName, std::ios_base::out | std::ios_base::binary);
@@ -121,12 +121,11 @@ IFACEMETHODIMP GcodeThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS
 
                 file.write(buffer, cbRead);
                 if (result == S_FALSE)
-                {               
+                {
                     break;
                 }
             }
             file.close();
-
 
             try
             {
@@ -135,7 +134,7 @@ IFACEMETHODIMP GcodeThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS
                 cmdLine += L" ";
                 cmdLine += std::to_wstring(cx);
 
-                std::wstring appPath = get_module_folderpath(g_hInst) + L"\\PowerToys.GcodeThumbnailProvider.exe";
+                std::wstring appPath = get_module_folderpath(g_hInst) + L"\\PowerToys.PdfThumbnailProvider.exe";
 
                 SHELLEXECUTEINFO sei{ sizeof(sei) };
                 sei.fMask = { SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI };
@@ -150,7 +149,7 @@ IFACEMETHODIMP GcodeThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS
                 std::wstring fileNameBmp = filePath + guid + L".bmp";
                 *phbmp = (HBITMAP)LoadImage(NULL, fileNameBmp.c_str(), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
                 *pdwAlpha = WTS_ALPHATYPE::WTSAT_ARGB;
-                
+
                 std::filesystem::remove(fileNameBmp);
             }
             catch (std::exception&)
@@ -160,10 +159,8 @@ IFACEMETHODIMP GcodeThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS
         }
     }
 
-
     return S_OK;
 }
-
 
 #pragma endregion
 

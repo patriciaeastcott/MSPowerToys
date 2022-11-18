@@ -132,11 +132,6 @@ namespace Microsoft.PowerToys.PreviewHandler.Gcode
 
             while ((line = reader.ReadLine()) != null)
             {
-                if (line.Length == 0)
-                {
-                    continue;
-                }
-
                 if (line.StartsWith("; thumbnail begin", StringComparison.InvariantCulture))
                 {
                     capturedText = new StringBuilder();
