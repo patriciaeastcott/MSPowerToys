@@ -57,6 +57,7 @@ namespace Microsoft.PowerToys.PreviewHandler.Gcode
             try
             {
                 Bitmap thumbnail = null;
+
                 if (!(dataSource is string filePath))
                 {
                     throw new ArgumentException($"{nameof(dataSource)} for {nameof(GcodePreviewHandler)} must be a string but was a '{typeof(T)}'");
@@ -131,6 +132,11 @@ namespace Microsoft.PowerToys.PreviewHandler.Gcode
 
             while ((line = reader.ReadLine()) != null)
             {
+                if (line.Length == 0)
+                {
+                    continue;
+                }
+
                 if (line.StartsWith("; thumbnail begin", StringComparison.InvariantCulture))
                 {
                     capturedText = new StringBuilder();
